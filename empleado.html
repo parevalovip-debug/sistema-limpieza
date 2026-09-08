@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Empleado - Sistema de Limpieza</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background: #f0f4f8; color: #1a202c; min-height: 100vh; display: flex; justify-content: center; align-items: center; }
+
+        .login-container, .app-container {
+            background: white;
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 500px;
+            margin: 20px;
+        }
+
+        .app-container { max-width: 1200px; display: none; }
+
+        h1 { color: #2a5298; margin-bottom: 10px; display: flex; align-items: center; gap: 10px; }
+        .subtitle { color: #4a5568; margin-bottom: 25px; }
+
+        .form-group { margin-bottom: 18px; }
+        .form-group label { display: block; font-weight: 600; margin-bottom: 5px; color: #2d3748; }
+        .form-group input, .form-group select { width: 100%; padding: 12px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 1rem; }
+        .form-group input:focus { border-color: #2a5298; outline: none; }
+
+        .btn { padding: 12px 24px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: 0.3s; font-size: 1rem; }
+        .btn-primary { background: #2a5298; color: white; width: 100%; }
+        .btn-primary:hover { background: #1e3a5f; }
+        .btn-success { background: #28a745; color: white; }
+        .btn-success:hover { background: #218838; }
+        .btn-danger { background: #dc3545; color: white; }
+        .btn-danger:hover { background: #c82333; }
+        .btn-warning { background: #ffc107; color: #1a202c; }
+        .btn-warning:hover { background: #e0a800; }
+        .btn-info { background: #17a2b8; color: white; }
+        .btn-info:hover { background: #138496; }
+        .btn-secondary { background: #6c757d; color: white; }
+        .btn-secondary:hover { background: #5a6268; }
+
+        .header-bar {
+            display: flex; justify-content: space-between; align-items: center;
+            flex-wrap: wrap; gap: 10px; margin-bottom: 25px;
+            padding-bottom: 15px; border-bottom: 2px solid #e2e8f0;
+        }
+
+        .user-info { font-weight: 600; color: #2a5298; }
+
+        .grid-cards {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px; margin: 20px 0;
+        }
+
+        .card {
+            background: white; padding: 20px; border-radius: 12px;
+            border-left: 4px solid #2a5298; box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+
+        .card h3 { color: #2d3748; margin-bottom: 8px; }
+        .card .meta { color: #4a5568; font-size: 0.9rem; margin: 4px 0; }
+        .card .badge {
+            display: inline-block; padding: 3px 12px; border-radius: 20px;
+            font-size: 0.75rem; font-weight: 600; margin-top: 8px;
+        }
+        .badge-success { background: #d4edda; color: #155724; }
+        .badge-warning { background: #fff3cd; color: #856404; }
+        .badge-danger { background: #f8d7da; color: #721c24; }
+        .badge-info { background: #d1ecf1; color: #0c5460; }
+
+        .card-actions { margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap; }
+
+        .historial-table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.9rem; }
+        .historial-table th { background: #f7fafc; padding: 10px; text-align: left; border-bottom: 2px solid #e2e8f0; }
+        .historial-table td { padding: 10px; border-bottom: 1px solid #e2e8f0; }
+        .historial-table tr:hover { background: #f7fafc; }
+
+        .logout-btn { background: #dc3545; color: white; border: none; padding: 8px 20px; border-radius: 8px; cursor: pointer; font-weight: 600; }
+        .logout-btn:hover { background: #c82333; }
+
+        .error-msg { color: #dc3545; background: #f8d7da; padding: 10px; border-radius: 8px; margin: 10px 0; display: none; }
+
+        @media (max-width: 600px) {
+            .grid-cards { grid-template-columns: 1fr; }
+            .header-bar { flex-direction: column; align-items: stretch; text-align: center; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginContainer" class="login-container">
+    <h1>🧹 CleanManager</h1>
+    <p class="subtitle">Acceso para empleados</p>
+    <form id="loginForm" onsubmit="login(event)">
+        <div class="form-group">
+            <label>Usuario</label>
+            <input type="text" id="loginUser" required placeholder="Ingresa tu usuario">
+        </div>
+        <div class="form-group">
+            <label>Contraseña</label>
+            <input type="password" id="loginPass" required placeholder="Ingresa tu contraseña">
+        </div>
+        <div id="loginError" class="error-msg">❌ Usuario o contraseña incorrectos</div>
+        <button type="submit" class="btn btn-primary">🔐 Iniciar Sesión</button>
+    </form>
+</div>
+
+<!-- APP -->
+<div id="appContainer" class="app-container">
+    <div class="header-bar">
+        <div>
+            <h1>🧹 CleanManager</h1>
+            <div class="user-info">👤 <span id="empNombreDisplay"></span> | 💰 <span id="empTarifaDisplay"></span>/h</div>
+        </div>
+        <button class="logout-btn" onclick="logout()">🚪 Cerrar Sesión</button>
+    </div>
+
+    <!-- Tabs para empleado -->
+    <div style="display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap;">
+        <button class="btn btn-primary" onclick="mostrarTab('trabajos')" id="tabTrabajosBtn">📋 Mis Trabajos</button>
+        <button class="btn btn-secondary" onclick="mostrarTab('historial')" id="tabHistorialBtn">📜 Historial</button>
+        <button class="btn btn-info" onclick="mostrarTab('resumen')" id="tabResumenBtn">📊 Resumen</button>
+    </div>
+
+    <!-- TAB: TRABAJOS -->
+    <div id="tab-trabajos">
+        <h2>📋 Mis Trabajos Asignados</h2>
+        <div id="trabajosContainer" class="grid-cards">
+            <p style="grid-column: 1/-1; color: #4a5568;">Cargando trabajos...</p>
+        </div>
+    </div>
+
+    <!-- TAB: HISTORIAL -->
+    <div id="tab-historial" style="display:none;">
+        <h2>📜 Mi Historial</h2>
+        <div style="margin: 10px 0; display: flex; gap: 10px; flex-wrap: wrap;">
+            <input type="date" id="histFechaInicio" onchange="renderHistorial()">
+            <input type="date" id="histFechaFin" onchange="renderHistorial()">
+            <button class="btn btn-secondary" onclick="document.getElementById('histFechaInicio').value='';document.getElementById('histFechaFin').value='';renderHistorial();">🔄 Limpiar filtros</button>
+        </div>
+        <div id="historialContainer"></div>
+    </div>
+
+    <!-- TAB: RESUMEN -->
+    <div id="tab-resumen" style="display:none;">
+        <h2>📊 Mi Resumen</h2>
+        <div class="grid-cards">
+            <div class="card" style="border-left-color: #28a745;">
+                <h3>💰 Ingresos Totales</h3>
+                <p style="font-size: 2rem; font-weight: 700; color: #28a745;" id="resumenIngresos">$0</p>
+            </div>
+            <div class="card" style="border-left-color: #17a2b8;">
+                <h3>⏱️ Horas Totales</h3>
+                <p style="font-size: 2rem; font-weight: 700; color: #17a2b8;" id="resumenHoras">0h</p>
+            </div>
+            <div class="card" style="border-left-color: #ffc107;">
+                <h3>📋 Trabajos Completados</h3>
+                <p style="font-size: 2rem; font-weight: 700; color: #ffc107;" id="resumenTrabajos">0</p>
+            </div>
+        </div>
+        <button class="btn btn-success" onclick="exportarMiReporte()">📊 Exportar mi reporte (PDF)</button>
+    </div>
+</div>
+
+<script>
+    let empleadoActual = null;
+    let data = {};
+
+    function getData() {
+        return {
+            empleados: JSON.parse(localStorage.getItem('clean_empleados') || '[]'),
+            clientes: JSON.parse(localStorage.getItem('clean_clientes') || '[]'),
+            jornadas: JSON.parse(localStorage.getItem('clean_jornadas') || '[]'),
+            config: JSON.parse(localStorage.getItem('clean_config') || '{"FICA":6.2,"Medicare":1.45,"SUI":2.95,"FUTA":0.6}')
+        };
+    }
+
+    function calcularHoras(entrada, salida) {
+        if (!entrada || !salida) return 0;
+        const [h1, m1] = entrada.split(':').map(Number);
+        const [h2, m2] = salida.split(':').map(Number);
+        let horas = h2 - h1;
+        let mins = m2 - m1;
+        if (mins < 0) { horas--; mins += 60; }
+        return horas + mins / 60;
+    }
+
+    function calcularDescuentos(monto, config) {
+        const total = (config.FICA || 0) + (config.Medicare || 0) + (config.SUI || 0) + (config.FUTA || 0);
+        return (monto * total) / 100;
+    }
+
+    // ========== LOGIN ==========
+    function login(e) {
+        e.preventDefault();
+        const user = document.getElementById('loginUser').value;
+        const pass = document.getElementById('loginPass').value;
+        data = getData();
+        const emp = data.empleados.find(e => e.usuario === user && e.password === pass && e.estado === 'activo');
+
+        if (emp) {
+            empleadoActual = emp;
+            document.getElementById('loginContainer').style.display = 'none';
+            document.getElementById('appContainer').style.display = 'block';
+            document.getElementById('empNombreDisplay').textContent = emp.nombre;
+            document.getElementById('empTarifaDisplay').textContent = '$' + emp.tarifa;
+            document.getElementById('loginError').style.display = 'none';
+            cargarTrabajos();
+            renderHistorial();
+            renderResumen();
+        } else {
+            document.getElementById('loginError').style.display = 'block';
+        }
+    }
+
+    function logout() {
+        empleadoActual = null;
+        document.getElementById('loginContainer').style.display = 'block';
+        document.getElementById('appContainer').style.display = 'none';
+        document.getElementById('loginForm').reset();
+    }
+
+    // ========== TABS ==========
+    function mostrarTab(tab) {
+        document.querySelectorAll('[id^="tab-"]').forEach(el => el.style.display = 'none');
+        document.getElementById('tab-' + tab).style.display = 'block';
+    }
+
+    // ========== CARGAR TRABAJOS ==========
+    function cargarTrabajos() {
+        data = getData();
+        const misJornadas = data.jornadas.filter(j => j.empleadoId === empleadoActual.id);
+        const container = document.getElementById('trabajosContainer');
+
+        if (misJornadas.length === 0) {
+            container.innerHTML = '<p style="grid-column:1/-1; color:#4a5568;">No tienes trabajos asignados.</p>';
+            return;
+        }
+
+        container.innerHTML = misJornadas.map(j => {
+            const cliente = data.clientes.find(c => c.id === j.clienteId);
+            const estaActivo = j.estado === 'pendiente';
+            const horas = j.horaEntrada && j.horaSalida ? calcularHoras(j.horaEntrada, j.horaSalida) : 0;
+            const subtotal = horas * empleadoActual.tarifa;
+            const total = subtotal - calcularDescuentos(subtotal, data.config);
+
+            return `
+                <div class="card">
+                    <h3>${cliente ? cliente.nombre : 'Cliente eliminado'}</h3>
+                    <div class="meta">📅 ${j.fecha}</div>
+                    <div class="meta">📍 ${j.direccion || 'Sin dirección'}</div>
+                    <div class="meta">⏱️ ${j.horaEntrada || '--'} → ${j.horaSalida || '--'}</div>
+                    <div class="meta">💰 $${total.toFixed(2)} (${horas.toFixed(2)}h)</div>
+                    <span class="badge ${j.estado === 'completado' ? 'badge-success' : 'badge-warning'}">${j.estado}</span>
+                    <div class="card-actions">
+                        ${!j.horaEntrada ? `<button class="btn btn-success" onclick="marcarEntrada('${j.id}')">✅ Marcar Entrada</button>` : ''}
+                        ${j.horaEntrada && !j.horaSalida ? `<button class="btn btn-danger" onclick="marcarSalida('${j.id}')">⏹️ Marcar Salida</button>` : ''}
+                        ${j.direccion ? `<button class="btn btn-info" onclick="verDireccionEmpleado('${j.id}')">🗺️ Maps</button>` : ''}
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    // ========== MARCAR ENTRADA/SALIDA ==========
+    function marcarEntrada(id) {
+        data = getData();
+        const jornada = data.jornadas.find(j => j.id === id);
+        if (!jornada) return;
+
+        const ahora = new Date();
+        const hora = String(ahora.getHours()).padStart(2, '0') + ':' + String(ahora.getMinutes()).padStart(2, '0');
+        jornada.horaEntrada = hora;
+
+        localStorage.setItem('clean_jornadas', JSON.stringify(data.jornadas));
+        cargarTrabajos();
+        renderHistorial();
+        renderResumen();
+        alert('✅ Hora de entrada registrada: ' + hora);
+    }
+
+    function marcarSalida(id) {
+        data = getData();
+        const jornada = data.jornadas.find(j => j.id === id);
+        if (!jornada) return;
+
+        if (!jornada.horaEntrada) {
+            alert('⚠️ Primero debes marcar la entrada');
+            return;
+        }
+
+        const ahora = new Date();
+        const hora = String(ahora.getHours()).padStart(2, '0') + ':' + String(ahora.getMinutes()).padStart(2, '0');
+        jornada.horaSalida = hora;
+        jornada.estado = 'completado';
+
+        localStorage.setItem('clean_jornadas', JSON.stringify(data.jornadas));
+        cargarTrabajos();
+        renderHistorial();
+        renderResumen();
+        alert('✅ Hora de salida registrada: ' + hora);
+    }
+
+    function verDireccionEmpleado(id) {
+        data = getData();
+        const jor = data.jornadas.find(j => j.id === id);
+        if (!jor || !jor.direccion) {
+            alert('📍 No hay dirección registrada');
+            return;
+        }
+        const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(jor.direccion)}`;
+        window.open(url, '_blank');
+    }
+
+    // ========== HISTORIAL ==========
+    function renderHistorial() {
+        data = getData();
+        const misJornadas = data.jornadas.filter(j => j.empleadoId === empleadoActual.id && j.estado === 'completado');
+
+        const fechaInicio = document.getElementById('histFechaInicio').value;
+        const fechaFin = document.getElementById('histFechaFin').value;
+
+        let filtradas = misJornadas;
+        if (fechaInicio) filtradas = filtradas.filter(j => j.fecha >= fechaInicio);
+        if (fechaFin) filtradas = filtradas.filter(j => j.fecha <= fechaFin);
+        filtradas.sort((a, b) => b.fecha.localeCompare(a.fecha));
+
+        const container = document.getElementById('historialContainer');
+
+        if (filtradas.length === 0) {
+            container.innerHTML = '<p style="color:#4a5568; margin-top:15px;">No hay registros completados.</p>';
+            return;
+        }
+
+        let html = `<table class="historial-table">
+            <thead><tr><th>Fecha</th><th>Cliente</th><th>Entrada</th><th>Salida</th><th>Horas</th><th>Total</th><th>Pago</th></tr></thead><tbody>`;
+
+        filtradas.forEach(j => {
+            const cliente = data.clientes.find(c => c.id === j.clienteId);
+            const horas = calcularHoras(j.horaEntrada, j.horaSalida);
+            const subtotal = horas * empleadoActual.tarifa;
+            const total = subtotal - calcularDescuentos(subtotal, data.config);
+            html += `<tr>
+                <td>${j.fecha}</td>
+                <td>${cliente ? cliente.nombre : 'Eliminado'}</td>
+                <td>${j.horaEntrada}</td>
+                <td>${j.horaSalida}</td>
+                <td>${horas.toFixed(2)}h</td>
+                <td>$${total.toFixed(2)}</td>
+                <td><span class="badge ${j.pago === 'efectivo' ? 'badge-success' : 'badge-warning'}">${j.pago}</span></td>
+            </tr>`;
+        });
+
+        html += `</tbody></table>`;
+        container.innerHTML = html;
+    }
+
+    // ========== RESUMEN ==========
+    function renderResumen() {
+        data = getData();
+        const misJornadas = data.jornadas.filter(j => j.empleadoId === empleadoActual.id && j.estado === 'completado');
+
+        let totalHoras = 0, totalIngresos = 0;
+        misJornadas.forEach(j => {
+            const horas = calcularHoras(j.horaEntrada, j.horaSalida);
+            totalHoras += horas;
+            const subtotal = horas * empleadoActual.tarifa;
+            totalIngresos += subtotal - calcularDescuentos(subtotal, data.config);
+        });
+
+        document.getElementById('resumenIngresos').textContent = '$' + totalIngresos.toFixed(2);
+        document.getElementById('resumenHoras').textContent = totalHoras.toFixed(2) + 'h';
+        document.getElementById('resumenTrabajos').textContent = misJornadas.length;
+    }
+
+    // ========== EXPORTAR MI REPORTE ==========
+    function exportarMiReporte() {
+        data = getData();
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+
+        doc.setFontSize(16);
+        doc.text('Mi Reporte - ' + empleadoActual.nombre, 14, 20);
+        doc.setFontSize(10);
+        doc.text('Generado: ' + new Date().toLocaleString(), 14, 28);
+
+        const misJornadas = data.jornadas.filter(j => j.empleadoId === empleadoActual.id && j.estado === 'completado');
+
+        let totalHoras = 0, totalIngresos = 0;
+        const rows = misJornadas.map(j => {
+            const cliente = data.clientes.find(c => c.id === j.clienteId);
+            const horas = calcularHoras(j.horaEntrada, j.horaSalida);
+            totalHoras += horas;
+            const subtotal = horas * empleadoActual.tarifa;
+            const total = subtotal - calcularDescuentos(subtotal, data.config);
+            totalIngresos += total;
+            return [j.fecha, cliente ? cliente.nombre : 'Eliminado', j.horaEntrada, j.horaSalida, horas.toFixed(2) + 'h', '$' + total.toFixed(2)];
+        });
+
+        doc.autoTable({
+            head: [['Fecha', 'Cliente', 'Entrada', 'Salida', 'Horas', 'Total']],
+            body: rows,
+            startY: 35,
+            styles: { fontSize: 8 },
+            headStyles: { fillColor: [42, 82, 152] }
+        });
+
+        const finalY = doc.lastAutoTable.finalY + 10;
+        doc.text('Total Horas: ' + totalHoras.toFixed(2) + 'h', 14, finalY);
+        doc.text('Total Ingresos: $' + totalIngresos.toFixed(2), 14, finalY + 8);
+
+        doc.save('mi_reporte_limpieza.pdf');
+    }
+
+    // ========== INIT ==========
+    // Cargar librería para PDF si no está
+    if (typeof window.jspdf === 'undefined') {
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+        document.head.appendChild(script);
+        setTimeout(() => {
+            const script2 = document.createElement('script');
+            script2.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js';
+            document.head.appendChild(script2);
+        }, 500);
+    }
+</script>
+
+</body>
+</html>

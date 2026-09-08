@@ -1,0 +1,1191 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Sistema de Limpieza</title>
+    <!-- Librerías para reportes -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: #f0f4f8;
+            color: #1a202c;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, #1e3a5f, #2a5298);
+            color: white;
+            padding: 20px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header h1 {
+            font-size: 1.8rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .header h1 span {
+            background: #f6c445;
+            color: #1a202c;
+            font-size: 0.8rem;
+            padding: 4px 12px;
+            border-radius: 20px;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 0.95rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+
+        .btn-primary { background: #2a5298; color: white; }
+        .btn-success { background: #28a745; color: white; }
+        .btn-danger { background: #dc3545; color: white; }
+        .btn-warning { background: #ffc107; color: #1a202c; }
+        .btn-info { background: #17a2b8; color: white; }
+        .btn-secondary { background: #6c757d; color: white; }
+        .btn-outline { background: transparent; border: 2px solid white; color: white; }
+
+        /* Main Layout */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+            background: white;
+            padding: 12px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .tab-btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            background: transparent;
+            color: #4a5568;
+            transition: all 0.3s;
+            font-size: 0.95rem;
+        }
+
+        .tab-btn:hover { background: #e2e8f0; }
+        .tab-btn.active {
+            background: #2a5298;
+            color: white;
+            box-shadow: 0 2px 8px rgba(42, 82, 152, 0.3);
+        }
+
+        .tab-content {
+            display: none;
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            animation: fadeIn 0.3s;
+        }
+
+        .tab-content.active { display: block; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Forms */
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            font-weight: 600;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+            color: #2d3748;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            padding: 10px 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            transition: all 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            border-color: #2a5298;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(42, 82, 152, 0.1);
+        }
+
+        .form-group textarea { resize: vertical; min-height: 60px; }
+
+        .form-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        /* Tables */
+        .table-wrapper {
+            overflow-x: auto;
+            margin-top: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+        table th {
+            background: #f7fafc;
+            color: #2d3748;
+            font-weight: 700;
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 2px solid #e2e8f0;
+            white-space: nowrap;
+        }
+
+        table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #e2e8f0;
+            vertical-align: middle;
+        }
+
+        table tr:hover { background: #f7fafc; }
+
+        .badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            display: inline-block;
+        }
+
+        .badge-success { background: #d4edda; color: #155724; }
+        .badge-danger { background: #f8d7da; color: #721c24; }
+        .badge-warning { background: #fff3cd; color: #856404; }
+        .badge-info { background: #d1ecf1; color: #0c5460; }
+
+        .action-btns {
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+        }
+
+        .action-btns .btn {
+            padding: 5px 12px;
+            font-size: 0.8rem;
+        }
+
+        /* Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            border-left: 4px solid #2a5298;
+        }
+
+        .stat-card .number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #2a5298;
+        }
+
+        .stat-card .label {
+            color: #4a5568;
+            font-size: 0.9rem;
+            margin-top: 4px;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(4px);
+            z-index: 999;
+            justify-content: center;
+            align-items: center;
+            animation: fadeIn 0.3s;
+        }
+
+        .modal-overlay.active { display: flex; }
+
+        .modal {
+            background: white;
+            padding: 30px;
+            border-radius: 16px;
+            max-width: 600px;
+            width: 95%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        .modal h2 {
+            margin-bottom: 20px;
+            color: #1a202c;
+        }
+
+        .modal .close-btn {
+            float: right;
+            background: none;
+            border: none;
+            font-size: 1.8rem;
+            cursor: pointer;
+            color: #4a5568;
+        }
+
+        /* Config section */
+        .config-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header { flex-direction: column; gap: 10px; text-align: center; }
+            .header h1 { font-size: 1.4rem; }
+            .tabs { justify-content: center; }
+            .tab-btn { padding: 8px 16px; font-size: 0.85rem; }
+            .form-grid { grid-template-columns: 1fr; }
+            .stats-grid { grid-template-columns: 1fr 1fr; }
+            .modal { padding: 20px; }
+        }
+
+        @media (max-width: 480px) {
+            .stats-grid { grid-template-columns: 1fr; }
+            .action-btns .btn { padding: 4px 8px; font-size: 0.7rem; }
+            table { font-size: 0.8rem; }
+            table th, table td { padding: 8px 10px; }
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb { background: #2a5298; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #1e3a5f; }
+    </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="header">
+    <h1>🧹 CleanManager <span>Admin</span></h1>
+    <div class="header-actions">
+        <button class="btn btn-outline" onclick="exportarReporteGeneral()">📊 Reporte General</button>
+        <button class="btn btn-outline" onclick="cambiarModo()">🌙 Modo Oscuro</button>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- STATS -->
+    <div class="stats-grid" id="statsGrid">
+        <div class="stat-card"><div class="number" id="totalEmpleados">0</div><div class="label">👤 Empleados Activos</div></div>
+        <div class="stat-card"><div class="number" id="totalClientes">0</div><div class="label">🏢 Clientes</div></div>
+        <div class="stat-card"><div class="number" id="totalJornadas">0</div><div class="label">📋 Jornadas Registradas</div></div>
+        <div class="stat-card"><div class="number" id="totalIngresos">$0</div><div class="label">💰 Ingresos Totales</div></div>
+    </div>
+
+    <!-- TABS -->
+    <div class="tabs">
+        <button class="tab-btn active" data-tab="empleados">👤 Empleados</button>
+        <button class="tab-btn" data-tab="clientes">🏢 Clientes</button>
+        <button class="tab-btn" data-tab="jornadas">📋 Jornadas</button>
+        <button class="tab-btn" data-tab="config">⚙️ Configuración</button>
+    </div>
+
+    <!-- TAB: EMPLEADOS -->
+    <div class="tab-content active" id="tab-empleados">
+        <h2>👤 Gestión de Empleados</h2>
+        <form id="formEmpleado" onsubmit="guardarEmpleado(event)">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Nombre completo *</label>
+                    <input type="text" id="empNombre" required>
+                </div>
+                <div class="form-group">
+                    <label>Teléfono *</label>
+                    <input type="tel" id="empTelefono" required>
+                </div>
+                <div class="form-group">
+                    <label>Email (opcional)</label>
+                    <input type="email" id="empEmail">
+                </div>
+                <div class="form-group">
+                    <label>Tarifa por hora ($) *</label>
+                    <input type="number" id="empTarifa" step="0.01" required>
+                </div>
+                <div class="form-group">
+                    <label>Cargo *</label>
+                    <input type="text" id="empCargo" placeholder="Ej: Supervisor, Limpiador" required>
+                </div>
+                <div class="form-group">
+                    <label>Usuario *</label>
+                    <input type="text" id="empUsuario" required>
+                </div>
+                <div class="form-group">
+                    <label>Contraseña *</label>
+                    <input type="text" id="empPassword" required>
+                </div>
+                <div class="form-group">
+                    <label>Estado</label>
+                    <select id="empEstado">
+                        <option value="activo">Activo</option>
+                        <option value="inactivo">Inactivo (Baja)</option>
+                    </select>
+                </div>
+            </div>
+            <input type="hidden" id="empEditId">
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">💾 Guardar Empleado</button>
+                <button type="reset" class="btn btn-secondary" onclick="limpiarFormEmpleado()">🔄 Limpiar</button>
+            </div>
+        </form>
+
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nombre</th><th>Teléfono</th><th>Tarifa/h</th><th>Cargo</th>
+                        <th>Usuario</th><th>Estado</th><th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="tablaEmpleados"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- TAB: CLIENTES -->
+    <div class="tab-content" id="tab-clientes">
+        <h2>🏢 Gestión de Clientes</h2>
+        <form id="formCliente" onsubmit="guardarCliente(event)">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Nombre/Empresa *</label>
+                    <input type="text" id="cliNombre" required>
+                </div>
+                <div class="form-group">
+                    <label>Dirección *</label>
+                    <input type="text" id="cliDireccion" required>
+                </div>
+                <div class="form-group">
+                    <label>Teléfono *</label>
+                    <input type="tel" id="cliTelefono" required>
+                </div>
+                <div class="form-group">
+                    <label>Email (opcional)</label>
+                    <input type="email" id="cliEmail">
+                </div>
+                <div class="form-group">
+                    <label>Días de servicio</label>
+                    <input type="text" id="cliDias" placeholder="Ej: Lunes, Miércoles, Viernes">
+                </div>
+                <div class="form-group">
+                    <label>Frecuencia</label>
+                    <select id="cliFrecuencia">
+                        <option value="semanal">Semanal</option>
+                        <option value="quincenal">Quincenal</option>
+                        <option value="mensual">Mensual</option>
+                    </select>
+                </div>
+            </div>
+            <input type="hidden" id="cliEditId">
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">💾 Guardar Cliente</button>
+                <button type="reset" class="btn btn-secondary" onclick="limpiarFormCliente()">🔄 Limpiar</button>
+            </div>
+        </form>
+
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nombre</th><th>Dirección</th><th>Teléfono</th>
+                        <th>Días</th><th>Frecuencia</th><th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="tablaClientes"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- TAB: JORNADAS -->
+    <div class="tab-content" id="tab-jornadas">
+        <h2>📋 Gestión de Jornadas</h2>
+
+        <form id="formJornada" onsubmit="guardarJornada(event)">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Empleado *</label>
+                    <select id="jorEmpleado" required></select>
+                </div>
+                <div class="form-group">
+                    <label>Cliente *</label>
+                    <select id="jorCliente" required></select>
+                </div>
+                <div class="form-group">
+                    <label>Fecha *</label>
+                    <input type="date" id="jorFecha" required>
+                </div>
+                <div class="form-group">
+                    <label>Hora Entrada</label>
+                    <input type="time" id="jorEntrada">
+                </div>
+                <div class="form-group">
+                    <label>Hora Salida</label>
+                    <input type="time" id="jorSalida">
+                </div>
+                <div class="form-group">
+                    <label>Dirección (se toma del cliente)</label>
+                    <input type="text" id="jorDireccion" readonly style="background:#f7fafc;">
+                </div>
+                <div class="form-group">
+                    <label>Tipo de Pago</label>
+                    <select id="jorPago">
+                        <option value="efectivo">💵 Efectivo</option>
+                        <option value="cheque">📄 Cheque</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Estado</label>
+                    <select id="jorEstado">
+                        <option value="pendiente">Pendiente</option>
+                        <option value="completado">Completado</option>
+                    </select>
+                </div>
+            </div>
+            <input type="hidden" id="jorEditId">
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">💾 Guardar Jornada</button>
+                <button type="reset" class="btn btn-secondary" onclick="limpiarFormJornada()">🔄 Limpiar</button>
+            </div>
+        </form>
+
+        <div style="margin: 15px 0; display: flex; gap: 10px; flex-wrap: wrap;">
+            <button class="btn btn-success" onclick="exportarExcelJornadas()">📊 Exportar Excel</button>
+            <button class="btn btn-danger" onclick="exportarPDFJornadas()">📄 Exportar PDF</button>
+        </div>
+
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Empleado</th><th>Cliente</th><th>Fecha</th>
+                        <th>Entrada</th><th>Salida</th><th>Horas</th>
+                        <th>Pago</th><th>Total</th><th>Estado</th><th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="tablaJornadas"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- TAB: CONFIGURACIÓN -->
+    <div class="tab-content" id="tab-config">
+        <h2>⚙️ Configuración de Descuentos (Ley Nevada)</h2>
+        <form onsubmit="guardarConfig(event)">
+            <div class="config-grid">
+                <div class="form-group">
+                    <label>Seguro Social (FICA) %</label>
+                    <input type="number" id="cfgFICA" step="0.01" value="6.2">
+                </div>
+                <div class="form-group">
+                    <label>Medicare %</label>
+                    <input type="number" id="cfgMedicare" step="0.01" value="1.45">
+                </div>
+                <div class="form-group">
+                    <label>Desempleo Estatal (SUI) %</label>
+                    <input type="number" id="cfgSUI" step="0.01" value="2.95">
+                </div>
+                <div class="form-group">
+                    <label>Desempleo Federal (FUTA) %</label>
+                    <input type="number" id="cfgFUTA" step="0.01" value="0.6">
+                </div>
+            </div>
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">💾 Guardar Configuración</button>
+            </div>
+        </form>
+        <div style="margin-top: 20px; padding: 20px; background: #f7fafc; border-radius: 8px;">
+            <h3>📌 Resumen de Descuentos</h3>
+            <p id="resumenDescuentos">Total descuentos: 0%</p>
+        </div>
+
+        <hr style="margin: 30px 0;">
+
+        <h2>🗄️ Gestión de Datos</h2>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <button class="btn btn-danger" onclick="exportarBackup()">💾 Exportar Backup (JSON)</button>
+            <button class="btn btn-success" onclick="importarBackup()">📂 Importar Backup (JSON)</button>
+            <button class="btn btn-danger" onclick="if(confirm('¿Eliminar TODOS los datos?')) localStorage.clear(); location.reload();">🗑️ Borrar Todos los Datos</button>
+        </div>
+        <input type="file" id="backupInput" accept=".json" style="display:none;" onchange="cargarBackup(event)">
+    </div>
+
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modalOverlay">
+    <div class="modal">
+        <button class="close-btn" onclick="cerrarModal()">✕</button>
+        <div id="modalContent"></div>
+    </div>
+</div>
+
+<script>
+    // ================ DATA LAYER ================
+    function getData() {
+        return {
+            empleados: JSON.parse(localStorage.getItem('clean_empleados') || '[]'),
+            clientes: JSON.parse(localStorage.getItem('clean_clientes') || '[]'),
+            jornadas: JSON.parse(localStorage.getItem('clean_jornadas') || '[]'),
+            config: JSON.parse(localStorage.getItem('clean_config') || '{"FICA":6.2,"Medicare":1.45,"SUI":2.95,"FUTA":0.6}')
+        };
+    }
+
+    function saveData(key, data) {
+        localStorage.setItem('clean_' + key, JSON.stringify(data));
+        renderAll();
+    }
+
+    function generateId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+
+    function calcularDescuentos(monto, config) {
+        const total = (config.FICA || 0) + (config.Medicare || 0) + (config.SUI || 0) + (config.FUTA || 0);
+        return (monto * total) / 100;
+    }
+
+    // ================ RENDER ================
+    function renderAll() {
+        const data = getData();
+        renderEmpleados(data);
+        renderClientes(data);
+        renderJornadas(data);
+        renderStats(data);
+        renderSelects(data);
+        renderResumenDescuentos(data);
+    }
+
+    function renderEmpleados(data) {
+        const tbody = document.getElementById('tablaEmpleados');
+        tbody.innerHTML = data.empleados.map(e => `
+            <tr>
+                <td><strong>${e.nombre}</strong></td>
+                <td>${e.telefono}</td>
+                <td>$${e.tarifa}/h</td>
+                <td>${e.cargo}</td>
+                <td>${e.usuario}</td>
+                <td><span class="badge ${e.estado === 'activo' ? 'badge-success' : 'badge-danger'}">${e.estado}</span></td>
+                <td>
+                    <div class="action-btns">
+                        <button class="btn btn-warning" onclick="editarEmpleado('${e.id}')">✏️</button>
+                        <button class="btn btn-danger" onclick="eliminarEmpleado('${e.id}')">🗑️</button>
+                        <button class="btn btn-info" onclick="verHistorialEmpleado('${e.id}')">📋</button>
+                    </div>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    function renderClientes(data) {
+        const tbody = document.getElementById('tablaClientes');
+        tbody.innerHTML = data.clientes.map(c => `
+            <tr>
+                <td><strong>${c.nombre}</strong></td>
+                <td>${c.direccion}</td>
+                <td>${c.telefono}</td>
+                <td>${c.dias || 'No especificado'}</td>
+                <td><span class="badge badge-info">${c.frecuencia}</span></td>
+                <td>
+                    <div class="action-btns">
+                        <button class="btn btn-warning" onclick="editarCliente('${c.id}')">✏️</button>
+                        <button class="btn btn-danger" onclick="eliminarCliente('${c.id}')">🗑️</button>
+                    </div>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    function renderJornadas(data) {
+        const tbody = document.getElementById('tablaJornadas');
+        const empleados = data.empleados;
+        const clientes = data.clientes;
+
+        tbody.innerHTML = data.jornadas.map(j => {
+            const emp = empleados.find(e => e.id === j.empleadoId);
+            const cli = clientes.find(c => c.id === j.clienteId);
+            const horas = j.horaEntrada && j.horaSalida ?
+                calcularHoras(j.horaEntrada, j.horaSalida) : 0;
+            const tarifa = emp ? emp.tarifa : 0;
+            const subtotal = horas * tarifa;
+            const descuento = calcularDescuentos(subtotal, data.config);
+            const total = subtotal - descuento;
+
+            return `
+                <tr>
+                    <td>${emp ? emp.nombre : 'Eliminado'}</td>
+                    <td>${cli ? cli.nombre : 'Eliminado'}</td>
+                    <td>${j.fecha}</td>
+                    <td>${j.horaEntrada || '--'}</td>
+                    <td>${j.horaSalida || '--'}</td>
+                    <td>${horas.toFixed(2)}h</td>
+                    <td><span class="badge ${j.pago === 'efectivo' ? 'badge-success' : 'badge-warning'}">${j.pago}</span></td>
+                    <td>$${total.toFixed(2)}</td>
+                    <td><span class="badge ${j.estado === 'completado' ? 'badge-success' : 'badge-warning'}">${j.estado}</span></td>
+                    <td>
+                        <div class="action-btns">
+                            <button class="btn btn-warning" onclick="editarJornada('${j.id}')">✏️</button>
+                            <button class="btn btn-danger" onclick="eliminarJornada('${j.id}')">🗑️</button>
+                            <button class="btn btn-info" onclick="verDireccion('${j.id}')">📍</button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    function renderStats(data) {
+        document.getElementById('totalEmpleados').textContent = data.empleados.filter(e => e.estado === 'activo').length;
+        document.getElementById('totalClientes').textContent = data.clientes.length;
+        document.getElementById('totalJornadas').textContent = data.jornadas.length;
+
+        let totalIngresos = 0;
+        data.jornadas.forEach(j => {
+            const emp = data.empleados.find(e => e.id === j.empleadoId);
+            if (emp && j.horaEntrada && j.horaSalida) {
+                const horas = calcularHoras(j.horaEntrada, j.horaSalida);
+                const subtotal = horas * emp.tarifa;
+                totalIngresos += subtotal - calcularDescuentos(subtotal, data.config);
+            }
+        });
+        document.getElementById('totalIngresos').textContent = '$' + totalIngresos.toFixed(2);
+    }
+
+    function renderSelects(data) {
+        const empSelect = document.getElementById('jorEmpleado');
+        const cliSelect = document.getElementById('jorCliente');
+
+        empSelect.innerHTML = data.empleados.filter(e => e.estado === 'activo')
+            .map(e => `<option value="${e.id}">${e.nombre}</option>`).join('');
+
+        cliSelect.innerHTML = data.clientes
+            .map(c => `<option value="${c.id}" data-dir="${c.direccion}">${c.nombre}</option>`).join('');
+
+        // Auto-fill dirección cuando cambia cliente
+        cliSelect.onchange = function() {
+            const dir = this.options[this.selectedIndex]?.getAttribute('data-dir') || '';
+            document.getElementById('jorDireccion').value = dir;
+        };
+        if (cliSelect.options.length) cliSelect.onchange();
+    }
+
+    function renderResumenDescuentos(data) {
+        const cfg = data.config;
+        const total = (cfg.FICA || 0) + (cfg.Medicare || 0) + (cfg.SUI || 0) + (cfg.FUTA || 0);
+        document.getElementById('resumenDescuentos').innerHTML = `
+            FICA: ${cfg.FICA}% | Medicare: ${cfg.Medicare}% | SUI: ${cfg.SUI}% | FUTA: ${cfg.FUTA}%<br>
+            <strong>Total descuentos: ${total}%</strong>
+        `;
+    }
+
+    function calcularHoras(entrada, salida) {
+        const [h1, m1] = entrada.split(':').map(Number);
+        const [h2, m2] = salida.split(':').map(Number);
+        let horas = h2 - h1;
+        let mins = m2 - m1;
+        if (mins < 0) { horas--; mins += 60; }
+        return horas + mins / 60;
+    }
+
+    // ================ CRUD EMPLEADOS ================
+    function guardarEmpleado(e) {
+        e.preventDefault();
+        const data = getData();
+        const id = document.getElementById('empEditId').value;
+        const empleado = {
+            nombre: document.getElementById('empNombre').value,
+            telefono: document.getElementById('empTelefono').value,
+            email: document.getElementById('empEmail').value,
+            tarifa: parseFloat(document.getElementById('empTarifa').value),
+            cargo: document.getElementById('empCargo').value,
+            usuario: document.getElementById('empUsuario').value,
+            password: document.getElementById('empPassword').value,
+            estado: document.getElementById('empEstado').value
+        };
+
+        if (id) {
+            const idx = data.empleados.findIndex(e => e.id === id);
+            if (idx !== -1) data.empleados[idx] = { ...data.empleados[idx], ...empleado };
+        } else {
+            empleado.id = generateId();
+            data.empleados.push(empleado);
+        }
+
+        saveData('empleados', data.empleados);
+        limpiarFormEmpleado();
+        alert('✅ Empleado guardado correctamente');
+    }
+
+    function editarEmpleado(id) {
+        const data = getData();
+        const emp = data.empleados.find(e => e.id === id);
+        if (!emp) return;
+        document.getElementById('empEditId').value = emp.id;
+        document.getElementById('empNombre').value = emp.nombre;
+        document.getElementById('empTelefono').value = emp.telefono;
+        document.getElementById('empEmail').value = emp.email || '';
+        document.getElementById('empTarifa').value = emp.tarifa;
+        document.getElementById('empCargo').value = emp.cargo;
+        document.getElementById('empUsuario').value = emp.usuario;
+        document.getElementById('empPassword').value = emp.password;
+        document.getElementById('empEstado').value = emp.estado;
+        document.getElementById('tab-empleados').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function eliminarEmpleado(id) {
+        if (!confirm('¿Eliminar este empleado? (Los registros de jornadas se mantienen)')) return;
+        let data = getData();
+        data.empleados = data.empleados.filter(e => e.id !== id);
+        saveData('empleados', data.empleados);
+    }
+
+    function limpiarFormEmpleado() {
+        document.getElementById('empEditId').value = '';
+        document.getElementById('formEmpleado').reset();
+    }
+
+    function verHistorialEmpleado(id) {
+        const data = getData();
+        const emp = data.empleados.find(e => e.id === id);
+        if (!emp) return;
+        const jornadas = data.jornadas.filter(j => j.empleadoId === id);
+        let html = `<h3>📋 Historial de ${emp.nombre}</h3>`;
+        if (jornadas.length === 0) {
+            html += '<p>No tiene jornadas registradas.</p>';
+        } else {
+            html += `<table>
+                <thead><tr><th>Fecha</th><th>Cliente</th><th>Horas</th><th>Total</th></tr></thead>
+                <tbody>`;
+            jornadas.forEach(j => {
+                const cli = data.clientes.find(c => c.id === j.clienteId);
+                const horas = j.horaEntrada && j.horaSalida ? calcularHoras(j.horaEntrada, j.horaSalida) : 0;
+                const subtotal = horas * emp.tarifa;
+                const total = subtotal - calcularDescuentos(subtotal, data.config);
+                html += `<tr>
+                    <td>${j.fecha}</td>
+                    <td>${cli ? cli.nombre : 'Eliminado'}</td>
+                    <td>${horas.toFixed(2)}h</td>
+                    <td>$${total.toFixed(2)}</td>
+                </tr>`;
+            });
+            html += `</tbody></table>`;
+            const totalHoras = jornadas.reduce((acc, j) => {
+                if (j.horaEntrada && j.horaSalida) return acc + calcularHoras(j.horaEntrada, j.horaSalida);
+                return acc;
+            }, 0);
+            html += `<p><strong>Total horas: ${totalHoras.toFixed(2)}h</strong></p>`;
+        }
+        document.getElementById('modalContent').innerHTML = html;
+        document.getElementById('modalOverlay').classList.add('active');
+    }
+
+    // ================ CRUD CLIENTES ================
+    function guardarCliente(e) {
+        e.preventDefault();
+        const data = getData();
+        const id = document.getElementById('cliEditId').value;
+        const cliente = {
+            nombre: document.getElementById('cliNombre').value,
+            direccion: document.getElementById('cliDireccion').value,
+            telefono: document.getElementById('cliTelefono').value,
+            email: document.getElementById('cliEmail').value,
+            dias: document.getElementById('cliDias').value,
+            frecuencia: document.getElementById('cliFrecuencia').value
+        };
+
+        if (id) {
+            const idx = data.clientes.findIndex(c => c.id === id);
+            if (idx !== -1) data.clientes[idx] = { ...data.clientes[idx], ...cliente };
+        } else {
+            cliente.id = generateId();
+            data.clientes.push(cliente);
+        }
+
+        saveData('clientes', data.clientes);
+        limpiarFormCliente();
+        alert('✅ Cliente guardado correctamente');
+    }
+
+    function editarCliente(id) {
+        const data = getData();
+        const cli = data.clientes.find(c => c.id === id);
+        if (!cli) return;
+        document.getElementById('cliEditId').value = cli.id;
+        document.getElementById('cliNombre').value = cli.nombre;
+        document.getElementById('cliDireccion').value = cli.direccion;
+        document.getElementById('cliTelefono').value = cli.telefono;
+        document.getElementById('cliEmail').value = cli.email || '';
+        document.getElementById('cliDias').value = cli.dias || '';
+        document.getElementById('cliFrecuencia').value = cli.frecuencia;
+        document.getElementById('tab-clientes').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function eliminarCliente(id) {
+        if (!confirm('¿Eliminar este cliente? (Los registros de jornadas se mantienen)')) return;
+        let data = getData();
+        data.clientes = data.clientes.filter(c => c.id !== id);
+        saveData('clientes', data.clientes);
+    }
+
+    function limpiarFormCliente() {
+        document.getElementById('cliEditId').value = '';
+        document.getElementById('formCliente').reset();
+    }
+
+    // ================ CRUD JORNADAS ================
+    function guardarJornada(e) {
+        e.preventDefault();
+        const data = getData();
+        const id = document.getElementById('jorEditId').value;
+        const jornada = {
+            empleadoId: document.getElementById('jorEmpleado').value,
+            clienteId: document.getElementById('jorCliente').value,
+            fecha: document.getElementById('jorFecha').value,
+            horaEntrada: document.getElementById('jorEntrada').value,
+            horaSalida: document.getElementById('jorSalida').value,
+            direccion: document.getElementById('jorDireccion').value,
+            pago: document.getElementById('jorPago').value,
+            estado: document.getElementById('jorEstado').value
+        };
+
+        if (!jornada.empleadoId || !jornada.clienteId || !jornada.fecha) {
+            alert('⚠️ Empleado, Cliente y Fecha son obligatorios');
+            return;
+        }
+
+        if (id) {
+            const idx = data.jornadas.findIndex(j => j.id === id);
+            if (idx !== -1) data.jornadas[idx] = { ...data.jornadas[idx], ...jornada };
+        } else {
+            jornada.id = generateId();
+            data.jornadas.push(jornada);
+        }
+
+        saveData('jornadas', data.jornadas);
+        limpiarFormJornada();
+        alert('✅ Jornada guardada correctamente');
+    }
+
+    function editarJornada(id) {
+        const data = getData();
+        const jor = data.jornadas.find(j => j.id === id);
+        if (!jor) return;
+        document.getElementById('jorEditId').value = jor.id;
+        document.getElementById('jorEmpleado').value = jor.empleadoId;
+        document.getElementById('jorCliente').value = jor.clienteId;
+        document.getElementById('jorFecha').value = jor.fecha;
+        document.getElementById('jorEntrada').value = jor.horaEntrada || '';
+        document.getElementById('jorSalida').value = jor.horaSalida || '';
+        document.getElementById('jorDireccion').value = jor.direccion || '';
+        document.getElementById('jorPago').value = jor.pago || 'efectivo';
+        document.getElementById('jorEstado').value = jor.estado || 'pendiente';
+        document.getElementById('tab-jornadas').scrollIntoView({ behavior: 'smooth' });
+        // Trigger cliente change para actualizar dirección
+        document.getElementById('jorCliente').onchange();
+    }
+
+    function eliminarJornada(id) {
+        if (!confirm('¿Eliminar esta jornada?')) return;
+        let data = getData();
+        data.jornadas = data.jornadas.filter(j => j.id !== id);
+        saveData('jornadas', data.jornadas);
+    }
+
+    function limpiarFormJornada() {
+        document.getElementById('jorEditId').value = '';
+        document.getElementById('formJornada').reset();
+        document.getElementById('jorDireccion').value = '';
+    }
+
+    function verDireccion(id) {
+        const data = getData();
+        const jor = data.jornadas.find(j => j.id === id);
+        if (!jor || !jor.direccion) {
+            alert('📍 No hay dirección registrada');
+            return;
+        }
+        const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(jor.direccion)}`;
+        document.getElementById('modalContent').innerHTML = `
+            <h3>📍 Dirección del trabajo</h3>
+            <p><strong>${jor.direccion}</strong></p>
+            <a href="${url}" target="_blank" class="btn btn-primary" style="display:inline-block;margin-top:10px;">
+                🗺️ Abrir en Google Maps
+            </a>
+            <br><br>
+            <button class="btn btn-success" onclick="navigator.clipboard.writeText('${jor.direccion}'); alert('📋 Dirección copiada')">
+                📋 Copiar dirección
+            </button>
+        `;
+        document.getElementById('modalOverlay').classList.add('active');
+    }
+
+    // ================ CONFIGURACIÓN ================
+    function guardarConfig(e) {
+        e.preventDefault();
+        const config = {
+            FICA: parseFloat(document.getElementById('cfgFICA').value) || 0,
+            Medicare: parseFloat(document.getElementById('cfgMedicare').value) || 0,
+            SUI: parseFloat(document.getElementById('cfgSUI').value) || 0,
+            FUTA: parseFloat(document.getElementById('cfgFUTA').value) || 0
+        };
+        localStorage.setItem('clean_config', JSON.stringify(config));
+        renderAll();
+        alert('✅ Configuración guardada');
+    }
+
+    // ================ REPORTES ================
+    function exportarReporteGeneral() {
+        const data = getData();
+        let html = `<h3>📊 Reporte General</h3>`;
+        html += `<p><strong>Empleados activos:</strong> ${data.empleados.filter(e => e.estado === 'activo').length}</p>`;
+        html += `<p><strong>Clientes:</strong> ${data.clientes.length}</p>`;
+        html += `<p><strong>Jornadas totales:</strong> ${data.jornadas.length}</p>`;
+
+        let totalHoras = 0, totalIngresos = 0;
+        data.jornadas.forEach(j => {
+            const emp = data.empleados.find(e => e.id === j.empleadoId);
+            if (emp && j.horaEntrada && j.horaSalida) {
+                const horas = calcularHoras(j.horaEntrada, j.horaSalida);
+                totalHoras += horas;
+                const subtotal = horas * emp.tarifa;
+                totalIngresos += subtotal - calcularDescuentos(subtotal, data.config);
+            }
+        });
+        html += `<p><strong>Total horas trabajadas:</strong> ${totalHoras.toFixed(2)}h</p>`;
+        html += `<p><strong>Ingresos totales:</strong> $${totalIngresos.toFixed(2)}</p>`;
+
+        document.getElementById('modalContent').innerHTML = html;
+        document.getElementById('modalOverlay').classList.add('active');
+    }
+
+    function exportarExcelJornadas() {
+        const data = getData();
+        const rows = data.jornadas.map(j => {
+            const emp = data.empleados.find(e => e.id === j.empleadoId);
+            const cli = data.clientes.find(c => c.id === j.clienteId);
+            const horas = j.horaEntrada && j.horaSalida ? calcularHoras(j.horaEntrada, j.horaSalida) : 0;
+            const tarifa = emp ? emp.tarifa : 0;
+            const subtotal = horas * tarifa;
+            const total = subtotal - calcularDescuentos(subtotal, data.config);
+            return {
+                'Empleado': emp ? emp.nombre : 'Eliminado',
+                'Cliente': cli ? cli.nombre : 'Eliminado',
+                'Fecha': j.fecha,
+                'Entrada': j.horaEntrada || '',
+                'Salida': j.horaSalida || '',
+                'Horas': horas.toFixed(2),
+                'Pago': j.pago,
+                'Total': '$' + total.toFixed(2),
+                'Estado': j.estado
+            };
+        });
+
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.json_to_sheet(rows);
+        XLSX.utils.book_append_sheet(wb, ws, 'Jornadas');
+        XLSX.writeFile(wb, 'jornadas_limpieza.xlsx');
+    }
+
+    function exportarPDFJornadas() {
+        const data = getData();
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF('landscape', 'mm', 'a4');
+
+        doc.setFontSize(16);
+        doc.text('Reporte de Jornadas - Limpieza', 14, 20);
+        doc.setFontSize(10);
+        doc.text('Generado: ' + new Date().toLocaleString(), 14, 28);
+
+        const rows = data.jornadas.map(j => {
+            const emp = data.empleados.find(e => e.id === j.empleadoId);
+            const cli = data.clientes.find(c => c.id === j.clienteId);
+            const horas = j.horaEntrada && j.horaSalida ? calcularHoras(j.horaEntrada, j.horaSalida) : 0;
+            return [
+                emp ? emp.nombre : 'Eliminado',
+                cli ? cli.nombre : 'Eliminado',
+                j.fecha,
+                j.horaEntrada || '',
+                j.horaSalida || '',
+                horas.toFixed(2) + 'h',
+                j.pago,
+                j.estado
+            ];
+        });
+
+        doc.autoTable({
+            head: [['Empleado', 'Cliente', 'Fecha', 'Entrada', 'Salida', 'Horas', 'Pago', 'Estado']],
+            body: rows,
+            startY: 35,
+            styles: { fontSize: 8 },
+            headStyles: { fillColor: [42, 82, 152] }
+        });
+
+        doc.save('jornadas_limpieza.pdf');
+    }
+
+    // ================ BACKUP ================
+    function exportarBackup() {
+        const data = {
+            empleados: JSON.parse(localStorage.getItem('clean_empleados') || '[]'),
+            clientes: JSON.parse(localStorage.getItem('clean_clientes') || '[]'),
+            jornadas: JSON.parse(localStorage.getItem('clean_jornadas') || '[]'),
+            config: JSON.parse(localStorage.getItem('clean_config') || '{"FICA":6.2,"Medicare":1.45,"SUI":2.95,"FUTA":0.6}')
+        };
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'backup_limpieza_' + new Date().toISOString().slice(0,10) + '.json';
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+
+    function importarBackup() {
+        document.getElementById('backupInput').click();
+    }
+
+    function cargarBackup(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(ev) {
+            try {
+                const data = JSON.parse(ev.target.result);
+                if (data.empleados) localStorage.setItem('clean_empleados', JSON.stringify(data.empleados));
+                if (data.clientes) localStorage.setItem('clean_clientes', JSON.stringify(data.clientes));
+                if (data.jornadas) localStorage.setItem('clean_jornadas', JSON.stringify(data.jornadas));
+                if (data.config) localStorage.setItem('clean_config', JSON.stringify(data.config));
+                renderAll();
+                alert('✅ Backup restaurado correctamente');
+            } catch (err) {
+                alert('❌ Error al leer el archivo');
+            }
+        };
+        reader.readAsText(file);
+        e.target.value = '';
+    }
+
+    // ================ MODAL ================
+    function cerrarModal() {
+        document.getElementById('modalOverlay').classList.remove('active');
+    }
+
+    // Cerrar modal con click fuera
+    document.getElementById('modalOverlay').addEventListener('click', function(e) {
+        if (e.target === this) cerrarModal();
+    });
+
+    // ================ TABS ================
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.getElementById('tab-' + this.dataset.tab).classList.add('active');
+        });
+    });
+
+    // ================ MODO OSCURO ================
+    function cambiarModo() {
+        document.body.style.background = document.body.style.background === '#1a202c' ? '#f0f4f8' : '#1a202c';
+        document.body.style.color = document.body.style.color === '#e2e8f0' ? '#1a202c' : '#e2e8f0';
+        document.querySelectorAll('.tab-content, .stat-card, .tabs, .modal').forEach(el => {
+            el.style.background = el.style.background === '#2d3748' ? 'white' : '#2d3748';
+            el.style.color = el.style.color === 'white' ? '#1a202c' : 'white';
+        });
+    }
+
+    // ================ INIT ================
+    // Set today's date
+    document.getElementById('jorFecha').value = new Date().toISOString().slice(0,10);
+    renderAll();
+</script>
+
+</body>
+</html>
